@@ -1,0 +1,156 @@
+看了你的地址选择三级联动代码 ， 发现一段重复过多的代码。
+
+<script>
+// 改变省
+	changPro : function(oThis, that) {
+		var index =	oThis.pro.selectedIndex, // 选中索引
+			oFrag = document.createDocumentFragment();
+		oThis.city.innerHTML = '';
+		oThis.cityList = provinceList[index]['cityList'];
+		if ( oThis.isCentral() ) {
+			this.cityList = [{
+				name : provinceList[index]['name']
+			}];
+		}
+		oThis.cal(oFrag, oThis.cityList, oThis.city);
+		if ( oThis.area ) {
+			this.changCity(oThis, that, 0, index);
+		}
+	},
+
+	// 改变市
+	changCity : function(oThis, that, index1, index2) {
+		var index = index ,// 选中索引
+			oFrag = document.createDocumentFragment();
+		oThis.calCity(oThis, index2, index1);
+		if ( oThis.area ) {
+			oThis.area.innerHTML = '';
+			oThis.cal(oFrag, oThis.areaList, oThis.area);
+		}
+	}
+</script>
+
+这个完全可以用以下这几行代码来代替
+//改变省
+  changePro:function(){
+    this.initCity();
+    this.initArea();
+  },
+  //改变市
+  changeCity:function(){
+    this.initArea();
+  }
+  
+ 只需要修改一些小地方就可以，要修改的地方如下
+ （1）将初始化pro,city,area中的类似于赋默认地址值的地方都去除，比如：this.area.value = this.defaultArea;
+ （2）将上面去掉的用一个函数defaultSet()来代替 ，把这个函数放在init函数里面初始化地址函数后
+ //修改到默认地址
+  defaultSet:function(){
+    this.pro.value=this.defaultPro;
+    this.changePro();
+    this.city.value=this.defaultCity;
+    this.changeCity();
+    this.area.value=this.defaultArea;
+  }
+ 
+ 附上完整的js代码（只包含自定义对象部分）
+ function Address(options){
+  this.pro=options.pro;   //省
+  this.city=options.city; //市
+  this.area=options.area; //县
+  this.defaultPro=options.defaultPro||'北京市';    //默认选择省
+  this.defaultCity=options.defaultCity||'北京市';  //默认选择市
+  this.defaultArea=options.defaultArea||'东城区';  //默认选择县
+  this.proList=[];
+  this.cityList=[];
+  this.areaList=[];
+}
+Address.prototype={
+  init:function(){
+    var that=this;
+    this.initPro();
+    this.initCity();
+    this.initArea();
+    this.defaultSet();
+    this.pro.onchange=function(){
+      that.changePro();
+    }
+    this.city.onchange=function(){
+      that.changeCity();
+    }
+  },
+  cal:function(arr,oFrag){
+    arr.forEach(function(item,index){
+      var option=document.createElement("option");
+      option.innerHTML=item.name?item.name:item;   //area不存在name
+      oFrag.appendChild(option);
+    })
+    return oFrag;
+  },
+  initPro:function(){
+    var oFrag=document.createDocumentFragment();
+    this.proList=provinceList;
+    this.pro.appendChild(this.cal(this.proList,oFrag));
+  },
+  initCity:function(){
+    var oFrag=document.createDocumentFragment();
+    var index=this.pro.selectedIndex;   //selectedIndex:select属性，返回下拉列表中被选选项的索引号
+    this.cityList=provinceList[index].cityList;
+    //如果为直辖市，那么把“市名=省名”
+    if(this.isCentral()){
+      this.cityList=[{
+        name:this.proList[index].name
+      }];
+    }
+    this.city.innerHTML="";
+    this.city.appendChild(this.cal(this.cityList, oFrag));
+  },
+  initArea:function(){
+    var oFrag=document.createDocumentFragment();
+    var pindex=this.pro.selectedIndex;
+    var cindex=this.city.selectedIndex;
+    this.areaList=this.cityList[cindex].areaList;
+    if(this.isCentral()){
+      this.areaList=this.proList[pindex].cityList;
+    }
+    console.log(this.areaList)
+    this.area.innerHTML="";
+    this.area.appendChild(this.cal(this.areaList,oFrag));
+  },
+  //判断是否为直辖市
+  isCentral:function(){
+    //console.log(typeof this.cityList.areaList);
+    return this.cityList[0].areaList == undefined;
+  },
+  //改变省
+  changePro:function(){
+    this.initCity();
+    this.initArea();
+  },
+  //改变市
+  changeCity:function(){
+    this.initArea();
+  },
+  //修改到默认地址
+  defaultSet:function(){
+    this.pro.value=this.defaultPro;
+    this.changePro();
+    this.city.value=this.defaultCity;
+    this.changeCity();
+    this.area.value=this.defaultArea;
+  }
+}
+
+
+var address=new Address({
+  pro:document.querySelector('#pro'),
+  city:document.querySelector('#city'),
+  area:document.querySelector('#area'),
+  defaultPro:'广东省',       //默认选择省（可不选）
+  defaultCity:'深圳市',      //默认选择市（可不选）
+  defaultArea:'南山区',      //默认选择县（可不选）
+})
+address.init();
+
+ 
+  
